@@ -1,6 +1,6 @@
 ---
 permalink: /my/
-title: "My"
+title: "Introduce"
 layout: archive
 author_profile: true
 sidebar:
