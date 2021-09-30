@@ -1,7 +1,7 @@
 ---
 title: "CodeEngn basics"
 layout: archive
-permalink: categories/codeengnbasic
+permalink: /categories/codeengnbasic
 author_profile: true
 sidebar_main: true
 ---
