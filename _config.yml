@@ -290,4 +290,11 @@ defaults:
       comments: true
       share: true
       related: true
-      sidebar_main: true
+            
+ defaults:
+  - scope:
+      path: ""
+      type: docs
+    value:
+      sidebar:
+        nav: "docs"
