@@ -1,5 +1,5 @@
 ---
-permalink: /about/
+permalink: /my/
 title: ""
 toc: true
 toc_sticky: true
