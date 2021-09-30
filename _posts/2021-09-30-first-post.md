@@ -1,7 +1,7 @@
 ---
 title: "Welcome to my blog"
-categories: hello
-tags: first
+categories: Introduce
+tags: Introduce
 comments: true
 ---
 hello
