@@ -4,9 +4,9 @@ main:
     url: https://surwl.github.io/
   - title: "Introduce"
     url: /my/
-  # - title: "Sample Posts"
-  #   url: /year-archive/
-  # - title: "Sample Collections"
-  #   url: /collection-archive/
+  - title: "Category"
+    url: /categories/
+  - title: "Tag"
+    url: /tags/
   # - title: "Sitemap"
   #   url: /sitemap/
