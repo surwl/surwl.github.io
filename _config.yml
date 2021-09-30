@@ -106,7 +106,7 @@ author:
   bio              : "반갑습니다."
   #location         : "Korea"
   email            :
-  links:
+  #links:
     - label: "Email"
       icon: "fas fa-fw fa-envelope-square"
       # url: "mailto:your.name@email.com"
