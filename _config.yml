@@ -19,7 +19,7 @@ locale                   : "ko-KR"
 title                    : "surwl의 블로그"
 title_separator          : "-"
 subtitle                 : # site tagline that appears below site title in masthead
-name                     : "your name"
+name                     : "surwl"
 description              : "An amazing website."
 url                      : https://surwl.github.io # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 baseurl                  : "" # the subpath of your site, e.g. "/blog"
@@ -104,7 +104,7 @@ author:
   name             : "surwl"
   avatar           : # path of avatar image, e.g. "/assets/images/bio-photo.jpg"
   bio              : "반갑습니다."
-  location         : "Somewhere"
+  #location         : "Korea"
   email            :
   links:
     - label: "Email"
