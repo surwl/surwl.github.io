@@ -1,7 +1,6 @@
 ---
 title: "Welcome to my blog"
-categories: Introduce
-tags: Introduce
-comments: true
+categories: 
+tags: 
 ---
 블로그 시작합니다.
