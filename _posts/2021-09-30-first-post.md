@@ -2,6 +2,6 @@
 title: "Welcome to my blog"
 categories: hello
 tags: first
- comment: true
+ comments: true
 ---
 hello
