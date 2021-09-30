@@ -1,6 +1,6 @@
 ---
 permalink: /my/
-title: "About"
+title: "My"
 toc: true
 toc_sticky: true
 toc_label: "자기소개"
