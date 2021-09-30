@@ -1,5 +1,5 @@
 ---
-permalink: /gategories/
+permalink: /ategories/
 title: "Category"
 toc: true
 toc_sticky: true
