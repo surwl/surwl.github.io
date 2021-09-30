@@ -2,8 +2,8 @@
 main:
   - title: "Home"
     url: https://surwl.github.io/
-  #- title: "Introduce"
-  #  url: /my/
+  - title: "Introduce"
+    url: /my/
   # - title: "Sample Posts"
   #   url: /year-archive/
   # - title: "Sample Collections"
