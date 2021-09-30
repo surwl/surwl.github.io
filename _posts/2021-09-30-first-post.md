@@ -1,10 +1,8 @@
 ---
 title: "Welcome to my blog"
 categories:
-  - Post Formats
+  - hello
 tags:
-  - Post Formats
-  - readability
-  - standard
+  - first
 ---
 hello
