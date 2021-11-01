@@ -4,8 +4,6 @@ layout: archive
 permalink: /categories/codeengnbasic
 author_profile: true
 sidebar_main: true
-sidebar:
-  nav: "docs"
 ---
 
 {% assign posts = site.categories["CodeEngn basic"] %}
