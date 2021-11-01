@@ -4,7 +4,7 @@ title: "Introduce"
 layout: archive
 layout: single
 author_profile: true
-sidebar_main:true
+sidebar_main: true
 toc: true
 toc_sticky: true
 toc_labea: "목차"
