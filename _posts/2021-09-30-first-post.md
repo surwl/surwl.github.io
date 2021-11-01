@@ -4,7 +4,6 @@ categories:
 tags: 
 layout: archive
 author_profile: true
-sidebar:
-  nav: "docs"
+sidebar_main: true
 ---
 블로그 시작합니다.
