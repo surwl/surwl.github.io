@@ -12,11 +12,6 @@ main:
   #   url: /sitemap/
 
 docs:
-  - title: 모의해킹 테스트
-    children:
-      - title: "penetration testing"
-        url: /categories/pt
-        
   - title: Wargame
     children:
       - title: "CodeEngn basic"
