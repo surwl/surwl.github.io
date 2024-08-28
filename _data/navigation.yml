@@ -14,7 +14,7 @@ main:
 docs:
   - title: 모의해킹 테스트
     children:
-      - title: "침투테스트"
+      - title: "모의해킹 실습"
         url: /categories/pt
 
   - title: Wargame
