@@ -1,7 +1,7 @@
 ---
 title: "vault"
 categories:
-  - 모의해킹
+  - pt
 tags:
   - 모의해킹 테스트
 layout: archive
