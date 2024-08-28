@@ -14,7 +14,7 @@
             <ul>
                 {% for category in site.categories %}
                     {% if category[0] == "Penetration Testing" %}
-                        <li><a href="/categories/pt" class="">모의해킹 실ㄴ습 ({{category[1].size}})</a></li>
+                        <li><a href="/categories/pt" class="">모의해킹 실습 ({{category[1].size}})</a></li>
                     {% endif %}
                 {% endfor %}
             </ul>
