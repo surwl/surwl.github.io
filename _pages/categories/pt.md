@@ -1,7 +1,7 @@
 ---
 title: "모의해킹"
 layout: archive
-permalink: /categories/모의해킹
+permalink: /categories/pt
 author_profile: true
 sidebar_main: true
 ---
