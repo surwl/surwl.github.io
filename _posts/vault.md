@@ -5,9 +5,14 @@ categories:
 tags:
   - 모의해킹 실습
 layout: archive
+layout: single
 author_profile: true
 sidebar_main: true
+toc: true
+toc_sticky: true
+toc_label: "목차"
 ---
+
 # vault 노트
 
 ## 목차
