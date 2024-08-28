@@ -12,6 +12,10 @@ main:
   #   url: /sitemap/
 
 docs:
+  - title: 모의해킹 테스트
+    children:
+      - title: "모의해킹 테스트"
+        url: /categories/모의해킹
   - title: Wargame
     children:
       - title: "CodeEngn basic"
