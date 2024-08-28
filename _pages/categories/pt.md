@@ -1,5 +1,5 @@
 ---
-title: "침투테스트"
+title: "모의해킹 실습"
 layout: archive
 permalink: /categories/pt
 author_profile: true
@@ -7,5 +7,5 @@ sidebar_main: true
 ---
 
 
-{% assign posts = site.categories["침투테스트"] %}
+{% assign posts = site.categories["모의해킹 실습"] %}
 {% for post in posts %} {% include archive-single.html type=page.entries_layout %} {% endfor %}
