@@ -15,7 +15,7 @@ docs:
   - title: 모의해킹 테스트
     children:
       - title: "모의해킹"
-        url: /categories/모의해킹
+        url: /categories/pt
   - title: Wargame
     children:
       - title: "CodeEngn basic"
