@@ -65,7 +65,7 @@ sidebar_main: true
 ### 정보 수집 - 웹
  80번 포트가 열려있으므로 브라우저를 통해 웹 사이트를 접근하여 확인해보니 우분투 서버와 아파치를 사용한 웹사이트 확인
  
- ![alt text](image.png)
+ ![alt text](/image/image.png)
 
  - 웹 서버의 기술 스택, robots.txt 등을 확인하였으나 자세한 정보를 얻을 수 없었기에 gobuster를 사용하여 웹 디렉토리 브루트포싱을 진행하니 /phpmyadmin 발견
     ```sh
@@ -77,15 +77,15 @@ sidebar_main: true
     ```
  - phpmyadmin 페이지에 접근시 로그인 페이지 확인
 
-    ![alt text](image-1.png)
+    ![alt text](/image/image-1.png)
 
  - phpmyadmin 페이지에 php 기본 어드민 id:password 입력하여 로그인 시도
 
-    ![alt text](image-2.png)
+    ![alt text](/image/image-2.png)
 
  - 로그인 성공 후 페이지 확인 결과 phpmyadmin 버전 확인
 
-    ![alt text](image-3.png)
+    ![alt text](/image/image-3.png)
 
 ### 취약점 진단
  phpmyadmin 4.8.1버전 취약점 확인 결과 RCE 취약점 발견
