@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://surwl.github.io/sitemap.xml
