@@ -1,5 +1,5 @@
 ---
-title: "모의해킹"
+title: "penetration testing"
 layout: archive
 permalink: /categories/pt
 author_profile: true
