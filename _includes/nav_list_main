@@ -13,7 +13,7 @@
         <span class="nav__sub-title">모의해킹 테스트</span>
             <ul>
             {% for category in site.categories %}
-                    {% if category[0] == "" %}
+                    {% if category[0] == "pt" %}
                         <li><a href="/categories/pt" class="">모의해킹 실습 ({{category[1].size}})</a></li>
                     {% endif %}
                 {% endfor %}
