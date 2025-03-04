@@ -27,7 +27,7 @@ docs:
   - title: 악성코드 분석공부
     children:
       - title: "악성코드 분석"
-        url: /categories/md
+        url: /categories/ma
       - title: "CodeEngn malware"
         url: /categories/codeengnmalware
       - title: "Practical Malware Analysis 실습"
