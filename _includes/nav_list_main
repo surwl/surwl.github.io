@@ -40,7 +40,7 @@
             <ul>
                 {% for category in site.categories %}
                     {% if category[0] == "Malware Analysis" %}
-                        <li><a href="/categories/md" class="">악성코드 분석 ({{category[1].size}})</a></li>
+                        <li><a href="/categories/ma" class="">악성코드 분석 ({{category[1].size}})</a></li>
                     {% endif %}
                 {% endfor %}
             </ul>
