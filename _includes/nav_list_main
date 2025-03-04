@@ -39,6 +39,13 @@
         <span class="nav__sub-title">악성코드 분석공부</span>
             <ul>
                 {% for category in site.categories %}
+                    {% if category[0] == "Malware Analysis" %}
+                        <li><a href="/categories/md" class="">악성코드 분석 ({{category[1].size}})</a></li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+            <ul>
+                {% for category in site.categories %}
                     {% if category[0] == "CodeEngn malware" %}
                         <li><a href="/categories/codeengnmalware" class="">CodeEngn malware ({{category[1].size}})</a></li>
                     {% endif %}
